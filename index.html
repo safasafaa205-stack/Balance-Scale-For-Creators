@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#7d8cc4">
+  <title>نَبض الاتزان للمبدعين | مقياس استرشادي</title>
+  <style>
+    :root {
+      --accent:#7182bd; --accent-dark:#52649e; --gold:#bd9855;
+      --green:#278653; --red:#c65b5b; --amber:#c58b32;
+      --ink:#273044; --muted:#687187; --paper:#fff;
+      --line:#e8ebf3; --soft:#f3f5fc;
+    }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      margin:0; min-height:100vh; padding:28px 14px;
+      font-family:Tahoma,"Segoe UI",Arial,sans-serif; color:var(--ink);
+      background:radial-gradient(circle at 15% 15%,#29324d 0,transparent 34%),
+                 radial-gradient(circle at 85% 80%,#30395a 0,transparent 32%),#0b0e17;
+    }
+    #canvas-container { position:fixed; inset:0; z-index:0; pointer-events:none; }
+    .shell {
+      position:relative; z-index:1; width:min(920px,100%); margin:0 auto;
+      background:rgba(255,255,255,.97); border:1px solid rgba(255,255,255,.5);
+      border-radius:30px; padding:clamp(20px,4vw,44px);
+      box-shadow:0 25px 80px rgba(0,0,0,.35);
+    }
+    .header { text-align:center; margin-bottom:26px; }
+    .logo {
+      width:92px;height:92px;object-fit:contain;border-radius:50%;
+      background:#fff;border:4px solid #fff;box-shadow:0 7px 22px #1d274022;
+    }
+    h1 { color:var(--accent-dark); font-size:clamp(1.55rem,4vw,2.1rem); margin:12px 0 7px; }
+    .byline { color:var(--gold);font-weight:700;margin:0; }
+    .intro,.notice,.analysis,.recommendation {
+      border-radius:20px; padding:20px 22px; line-height:1.9;
+    }
+    .intro { background:linear-gradient(135deg,#eff2ff,#fff);border-right:6px solid var(--accent);margin-bottom:18px; }
+    .notice { background:#fff9ed;border:1px solid #f0dfbd;color:#655438;font-size:.92rem;margin:18px 0 24px; }
+    .field { display:block;width:100%;padding:15px 16px;margin:12px 0;border:1px solid #dfe3ee;border-radius:14px;background:#fbfcff;font-size:1rem; }
+    .field:focus { outline:3px solid #7182bd2b;border-color:var(--accent); }
+    button { font:inherit; }
+    .btn {
+      border:0;border-radius:15px;padding:14px 20px;cursor:pointer;font-weight:700;
+      transition:transform .18s,filter .18s;min-height:48px;
+    }
+    .btn:hover { filter:brightness(.97);transform:translateY(-1px); }
+    .btn:focus-visible { outline:3px solid #bd985577;outline-offset:3px; }
+    .primary { background:var(--accent);color:#fff;width:100%; }
+    .secondary { background:#edf0fa;color:var(--accent-dark); }
+    .progress-wrap { background:#e9ecf5;height:9px;border-radius:20px;overflow:hidden;margin:18px 0 8px; }
+    .progress { height:100%;width:0;background:linear-gradient(90deg,var(--accent),#b3bce0);transition:width .25s; }
+    .progress-meta { display:flex;justify-content:space-between;color:var(--muted);font-size:.9rem;gap:12px; }
+    .question-card { padding:clamp(18px,4vw,30px);background:#fbfcff;border:1px solid var(--line);border-radius:22px;margin-top:20px; }
+    .question { font-size:clamp(1.15rem,3vw,1.45rem);line-height:1.9;text-align:center;min-height:92px;display:grid;place-items:center; }
+    .options { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:20px; }
+    .option { background:#fff;border:1px solid var(--line);color:#3b4358;border-radius:14px;padding:16px 10px;font-weight:700;cursor:pointer; }
+    .option:hover,.option:focus-visible { background:var(--accent);color:#fff;border-color:var(--accent);outline:none; }
+    .nav { display:flex;gap:10px;margin-top:16px; }
+    .nav .btn { flex:1; }
+    #result-area { display:none; }
+    .scores { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0; }
+    .score-card { text-align:center;padding:17px 10px;border:1px solid var(--line);border-radius:17px;background:#fff; }
+    .score-card strong { display:block;font-size:1.8rem;margin:7px 0;color:var(--accent-dark); }
+    .score-card small { color:var(--muted); }
+    .analysis { background:#f5f6fc;border:1px solid #e5e8f3;margin:18px 0; }
+    .recommendation { background:#f0faf4;border-right:7px solid var(--green);margin:18px 0; }
+    .qa-table { width:100%;border-collapse:collapse;margin:20px 0;font-size:.92rem; }
+    .qa-table th,.qa-table td { border:1px solid #dfe3ec;padding:10px;text-align:right;line-height:1.7; }
+    .qa-table th { background:#f0f2f8; }
+    .actions { display:flex;gap:10px;flex-wrap:wrap;margin-top:22px; }
+    .actions .btn { flex:1;min-width:180px; }
+    .print-only { display:none; }
+    .muted { color:var(--muted);font-size:.9rem;line-height:1.8; }
+    .status { text-align:center;padding:14px;border-radius:14px;background:#f1f3fa;color:var(--accent-dark);font-weight:700; }
+    @media(max-width:600px) {
+      body { padding:12px 8px; }
+      .shell { border-radius:22px;padding:20px 15px; }
+      .scores { grid-template-columns:1fr; }
+      .score-card { display:flex;align-items:center;justify-content:space-between;text-align:right; }
+      .score-card strong { margin:0 8px; }
+      .options { gap:8px; }
+      .option { padding:14px 6px; }
+    }
+    @media print {
+      @page { size:A4; margin:13mm; }
+      body { background:#fff!important;padding:0;color:#111; }
+      #canvas-container,.no-print,#setup-section,#quiz-body { display:none!important; }
+      .shell { width:100%;max-width:none;padding:0;border:0;box-shadow:none;border-radius:0;background:#fff; }
+      #result-area { display:block!important; }
+      .print-only { display:block!important; }
+      .analysis,.recommendation,.notice { break-inside:avoid; }
+      .qa-table { font-size:9pt; }
+      .qa-table tr { break-inside:avoid; }
+      .scores { grid-template-columns:repeat(3,1fr); }
+      .score-card { break-inside:avoid; }
+    }
+    @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important;transition:none!important;scroll-behavior:auto!important; } }
+  </style>
+</head>
+<body>
+  <div id="canvas-container" aria-hidden="true"></div>
+  <main class="shell">
+    <section id="setup-section">
+      <header class="header">
+        <img class="logo" src="ضع-رابط-الصورة-المباشر-هنا" alt="شعار الإبداع والموهبة" onerror="this.style.display='none'">
+        <h1>نَبض الاتزان للمبدعين</h1>
+        <p class="byline">إعداد وأتمتة: الأخصائية صفاء المصري</p>
+      </header>
+
+      <div class="intro">
+        <strong>مبدعنا المتميز،</strong>
+        هذا المقياس الاسترشادي مساحة للتأمل في علاقتك بالتعلم والإبداع والضغوط اليومية.
+        أجب وفق ما ينطبق عليك غالبًا، ولا توجد إجابة صحيحة أو خاطئة.
+      </div>
+
+      <div class="notice">
+        <strong>تنويه مهم:</strong> هذه أداة تأمل ومسح إرشادي غير مقننة، وليست اختبارًا تشخيصيًا أو نسخة معتمدة من مقياس ماسلاش (MBI).
+        لا تُستخدم نتائجها لتشخيص حالة نفسية أو لاتخاذ قرار تعليمي أو علاجي. عند وجود ضيق مستمر، يُفضّل مناقشة الأمر مع مختص مؤهل.
+      </div>
+
+      <label for="user-name">الاسم (اختياري أو رمز تعريفي)</label>
+      <input id="user-name" class="field" type="text" maxlength="100" autocomplete="name" placeholder="اكتب الاسم أو الرمز التعريفي">
+      <label for="user-grade">الصف / الفئة (اختياري)</label>
+      <input id="user-grade" class="field" type="text" maxlength="60" placeholder="الصف / الفئة">
+      <label style="display:flex;align-items:flex-start;gap:10px;line-height:1.8;margin:16px 0;color:#596176">
+        <input id="consent-save" type="checkbox" style="margin-top:7px;flex:0 0 auto">
+        <span>أوافق اختياريًا على إرسال الاسم/الرمز والصف والنتائج إلى جدول Google Sheets المرتبط بهذا الموقع. إذا لم أحدد هذا الخيار فلن تُرسل بياناتي.</span>
+      </label>
+      <button class="btn primary" id="start-btn" type="button">ابدأ المقياس</button>
+      <p class="muted">عدد الفقرات: 22 فقرة. يمكنك الرجوع إلى السؤال السابق قبل إنهاء المقياس.</p>
+    </section>
+
+    <section id="quiz-body" aria-live="polite" style="display:none">
+      <div class="progress-wrap"><div class="progress" id="progress"></div></div>
+      <div class="progress-meta"><span id="progress-label">السؤال 1 من 22</span><span id="progress-percent">5%</span></div>
+      <div class="question-card">
+        <div class="question" id="question-text"></div>
+        <div class="options" id="options"></div>
+      </div>
+      <div class="nav">
+        <button class="btn secondary" id="back-btn" type="button">السابق</button>
+        <button class="btn secondary" id="cancel-btn" type="button">إنهاء والعودة للبداية</button>
+      </div>
+    </section>
+
+    <section id="result-area">
+      <div class="print-only" style="text-align:center;border-bottom:2px solid #7182bd;padding-bottom:14px;margin-bottom:18px">
+        <h2>سجل التأمل في الاتزان الإبداعي</h2>
+        <p>إعداد وأتمتة: الأخصائية صفاء المصري</p>
+        <p>الاسم: <span id="res-name-print"></span> | الصف/الفئة: <span id="res-grade-print"></span></p>
+        <p>التاريخ: <span id="res-date-print"></span></p>
+      </div>
+      <h2 id="score-status" class="status"></h2>
+      <div class="scores">
+        <div class="score-card"><span>الإنهاك العاطفي</span><strong id="e-score">0</strong><small>من 27</small></div>
+        <div class="score-card"><span>التشكك / التباعد</span><strong id="d-score">0</strong><small>من 15</small></div>
+        <div class="score-card"><span>الكفاءة الشخصية</span><strong id="a-score">0</strong><small>من 24</small></div>
+      </div>
+      <div id="deep-analysis" class="analysis"></div>
+      <div id="final-recommendation" class="recommendation"></div>
+      <div class="notice">
+        <strong>طريقة قراءة الدرجات:</strong> الدرجة الأعلى في الإنهاك أو التشكك تعني تكرارًا أكبر للمشاعر الواردة في تلك الفقرات، بينما الدرجة الأعلى في الكفاءة تعني تكرارًا أكبر للمشاعر الإيجابية المتعلقة بالقدرة والإنجاز. لا توجد حدود تشخيصية معتمدة لهذه النسخة.
+      </div>
+      <h3>السجل التفصيلي للاستجابات</h3>
+      <table class="qa-table">
+        <thead><tr><th style="width:45px">#</th><th>الفقرة</th><th>الاستجابة</th></tr></thead>
+        <tbody id="qa-log-body"></tbody>
+      </table>
+      <div class="print-only" style="margin-top:35px">
+        <p>أخصائية الموهبة والإبداع: صفاء المصري</p>
+        <p>التوقيع: ................................................</p>
+      </div>
+      <div class="actions no-print">
+        <button class="btn primary" id="print-btn" type="button">طباعة / حفظ PDF</button>
+        <button class="btn secondary" id="restart-btn" type="button">إعادة المقياس</button>
+      </div>
+      <p id="save-status" class="muted no-print" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <!-- Three.js تحسين بصري اختياري؛ لا يؤثر غيابه في عمل المقياس -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    "use strict";
+
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxCd_Q9kpd44HqWV0f6du9j7WeejcPJRSEJJXs_APmfJsoJvXYT8u0vKinRYpZTg8cf/exec";
+
+    const questions = [
+      { q:"أشعر بالاستنزاف العاطفي بسبب ضغوطات التفوق والتميز.", cat:"E" },
+      { q:"أصل لنهاية اليوم وأنا أشعر بنضوب كامل لطاقتي.", cat:"E" },
+      { q:"يراودني شعور بالثقل النفسي قبل بدء مهامي الدراسية صباحاً.", cat:"E" },
+      { q:"أمتلك القدرة على فهم انفعالات زملائي واحتوائها.", cat:"A" },
+      { q:"أشعر أحياناً بالرغبة في الانعزال أو التعامل ببرود مع المحيطين.", cat:"D" },
+      { q:"أشعر أن المهام المطلوبة أصبحت عبئاً يفوق قدرتي على الاحتمال.", cat:"E" },
+      { q:"أثق في قدرتي على حل المشكلات المعقدة.", cat:"A" },
+      { q:"أشعر بأن شعلة حماسي للإنجاز بدأت تخبو تدريجياً.", cat:"E" },
+      { q:"أشعر بالفخر تجاه المساهمات الإبداعية التي أقدمها.", cat:"A" },
+      { q:"أجد نفسي أقل صبراً وأكثر حدة في التعامل خلال فترات الضغط.", cat:"D" },
+      { q:"أخشى أن التركيز المفرط على الإنجاز سلب مني مهارة التعاطف.", cat:"D" },
+      { q:"تتجدد طاقتي بمجرد الانخراط في مشروع إبداعي جديد.", cat:"A" },
+      { q:"ينتابني شعور بعدم الرضا عن مستوى إنجازي الحالي.", cat:"E" },
+      { q:"أشعر أنني أضغط على أعصابي بشكل مستمر لمواكبة التوقعات.", cat:"E" },
+      { q:"أميل لتجاهل مشكلات الآخرين لكي أركز فقط على متطلباتي الدراسية.", cat:"D" },
+      { q:"التواجد في بيئات مزدحمة بالتوقعات يسبب لي توتراً ملموساً.", cat:"E" },
+      { q:"أجيد خلق روح من الانسجام والتعاون في مجموعات العمل.", cat:"A" },
+      { q:"أشعر بارتياح عند الوصول إلى حل مبتكر لمسألة صعبة.", cat:"A" },
+      { q:"أستطيع أن أرى ثمار جهدي وتفوقي تتحقق على أرض الواقع.", cat:"A" },
+      { q:"أشعر أحياناً أنني في صراع مستمر مع الوقت والطاقة.", cat:"E" },
+      { q:"أمتلك مهارات في توجيه مشاعري نحو الإنجاز بدلاً من القلق.", cat:"A" },
+      { q:"أشعر أن البيئة المحيطة تحملني مسؤوليات تفوق طاقتي النفسية.", cat:"D" }
+    ];
+
+    const choices = [
+      { value:0, label:"أبداً" },
+      { value:1, label:"نادراً" },
+      { value:2, label:"أحياناً" },
+      { value:3, label:"دائماً" }
+    ];
+    let currentIdx = 0;
+    let answers = [];
+
+    const $ = id => document.getElementById(id);
+    const setup = $("setup-section");
+    const quiz = $("quiz-body");
+    const result = $("result-area");
+
+    function startQuiz() {
+      currentIdx = 0;
+      answers = new Array(questions.length).fill(null);
+      setup.style.display = "none";
+      result.style.display = "none";
+      quiz.style.display = "block";
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      const item = questions[currentIdx];
+      const progress = ((currentIdx + 1) / questions.length) * 100;
+      $("progress").style.width = progress + "%";
+      $("progress-label").textContent = `السؤال ${currentIdx + 1} من ${questions.length}`;
+      $("progress-percent").textContent = `${Math.round(progress)}%`;
+      $("question-text").textContent = item.q;
+
+      const options = $("options");
+      options.replaceChildren();
+      choices.forEach(choice => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "option";
+        button.textContent = choice.label;
+        button.setAttribute("aria-pressed", String(answers[currentIdx] === choice.value));
+        if (answers[currentIdx] === choice.value) {
+          button.style.background = "var(--accent)";
+          button.style.color = "#fff";
+        }
+        button.addEventListener("click", () => {
+          answers[currentIdx] = choice.value;
+          if (currentIdx < questions.length - 1) {
+            currentIdx++;
+            renderQuestion();
+          } else {
+            showReport();
+          }
+        });
+        options.appendChild(button);
+      });
+      $("back-btn").disabled = currentIdx === 0;
+      $("back-btn").style.opacity = currentIdx === 0 ? ".45" : "1";
+    }
+
+    function calculateScores() {
+      const scores = { E:0, D:0, A:0 };
+      questions.forEach((item, index) => {
+        if (answers[index] !== null) scores[item.cat] += answers[index];
+      });
+      return scores;
+    }
+
+    function showReport() {
+      const scores = calculateScores();
+      const name = $("user-name").value.trim() || "غير محدد";
+      const grade = $("user-grade").value.trim() || "غير محدد";
+      const date = new Intl.DateTimeFormat("ar-JO", { dateStyle:"long" }).format(new Date());
+
+      $("res-name-print").textContent = name;
+      $("res-grade-print").textContent = grade;
+      $("res-date-print").textContent = date;
+      $("e-score").textContent = scores.E;
+      $("d-score").textContent = scores.D;
+      $("a-score").textContent = scores.A;
+
+      const analysis = [];
+      analysis.push("<strong>قراءة استرشادية للنتائج</strong>");
+      if (scores.E >= 18) {
+        analysis.push("• تشير إجابات بُعد الإنهاك إلى تكرار ملحوظ لمشاعر التعب والضغط. قد يفيدك تنظيم فترات الراحة ومراجعة حجم الالتزامات.");
+      } else if (scores.E >= 9) {
+        analysis.push("• تظهر بعض مؤشرات التعب والضغط؛ راقب مصادرها وحاول توزيع المهام وطلب المساندة عند الحاجة.");
+      } else {
+        analysis.push("• كانت إجابات الإنهاك أقل تكرارًا ضمن هذه الفقرات، مع أهمية الاستمرار في الاهتمام بالراحة والتوازن.");
+      }
+
+      if (scores.D >= 10) {
+        analysis.push("• تشير إجابات بُعد التشكك/التباعد إلى تكرار نسبي لمشاعر الانسحاب أو انخفاض الصبر في فترات الضغط. حاول الحفاظ على التواصل وطلب الدعم.");
+      } else if (scores.D >= 5) {
+        analysis.push("• تظهر بعض الاستجابات المرتبطة بالتباعد أو قلة الصبر؛ انتبه للمواقف التي تزيدها.");
+      } else {
+        analysis.push("• لم تتكرر كثيرًا الاستجابات المرتبطة بالتباعد ضمن هذا المقياس.");
+      }
+
+      if (scores.A <= 8) {
+        analysis.push("• كانت الاستجابات الإيجابية المتعلقة بالكفاءة والإنجاز أقل تكرارًا؛ قد يساعدك تقسيم الأهداف والاحتفاء بالتقدم الصغير.");
+      } else if (scores.A <= 16) {
+        analysis.push("• تظهر لديك بعض مشاعر الكفاءة والإنجاز، ويمكن دعمها بتحديد أهداف واقعية وتوثيق ما تنجزه.");
+      } else {
+        analysis.push("• تكررت لديك الاستجابات الإيجابية المتعلقة بالكفاءة والإنجاز؛ حافظ على هذه الجوانب دون تحميل نفسك فوق طاقتك.");
+      }
+
+      const needsSupport = scores.E >= 18 || scores.D >= 10 || scores.A <= 8;
+      $("score-status").textContent = needsSupport
+        ? "توجد جوانب تستحق الانتباه والمساندة"
+        : "تُظهر إجاباتك بعض مؤشرات الاتزان الإيجابية";
+      $("deep-analysis").innerHTML = analysis.map(x => `<p>${x}</p>`).join("");
+      $("final-recommendation").innerHTML =
+        "<strong>توصية:</strong> اجعل الراحة جزءًا من خطة الإنجاز، ووازن بين الدراسة والأنشطة التي تمنحك معنى ومتعة. تحدّث مع شخص موثوق أو مختص إذا استمر الضغط أو أثر في حياتك اليومية.";
+
+      const tbody = $("qa-log-body");
+      tbody.replaceChildren();
+      questions.forEach((item, index) => {
+        const tr = document.createElement("tr");
+        [String(index + 1), item.q, choices.find(c => c.value === answers[index]).label].forEach(value => {
+          const td = document.createElement("td");
+          td.textContent = value;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+
+      quiz.style.display = "none";
+      result.style.display = "block";
+      window.scrollTo({ top:0, behavior:"smooth" });
+      const payload = { name, grade, exhaustion:scores.E, cynicism:scores.D, efficacy:scores.A, status:$("score-status").textContent, date };
+      if ($("consent-save").checked) {
+        saveResults(payload);
+      } else {
+        $("save-status").textContent = "لم يتم إرسال بياناتك إلى Google Sheets لأن خيار الموافقة لم يتم تحديده.";
+      }
+    }
+
+    async function saveResults(payload) {
+      const status = $("save-status");
+      if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("YOUR_")) {
+        status.textContent = "لم يُضبط رابط Google Apps Script؛ لم يتم إرسال النتائج.";
+        return;
+      }
+      status.textContent = "تجري محاولة إرسال النتيجة إلى جدول البيانات…";
+      try {
+        // no-cors يجعل الاستجابة غير قابلة للقراءة من المتصفح؛ لا يمكن تأكيد الحفظ من هذه الصفحة.
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method:"POST",
+          mode:"no-cors",
+          headers:{ "Content-Type":"text/plain;charset=UTF-8" },
+          body:JSON.stringify(payload)
+        });
+        status.textContent = "أُرسلت محاولة الإرسال. بسبب وضع no-cors لا يمكن للصفحة التحقق من أن Google Sheets حفظ البيانات؛ تحقق من الجدول مباشرة.";
+      } catch (error) {
+        console.error("تعذر إرسال النتيجة:", error);
+        status.textContent = "تعذر إرسال النتيجة. يمكنك طباعة التقرير، ثم مراجعة اتصال الإنترنت وإعدادات Google Apps Script.";
+      }
+    }
+
+    function resetToStart() {
+      currentIdx = 0;
+      answers = [];
+      $("consent-save").checked = false;
+      result.style.display = "none";
+      quiz.style.display = "none";
+      setup.style.display = "block";
+      window.scrollTo({ top:0, behavior:"smooth" });
+    }
+
+    $("start-btn").addEventListener("click", startQuiz);
+    $("back-btn").addEventListener("click", () => {
+      if (currentIdx > 0) { currentIdx--; renderQuestion(); }
+    });
+    $("cancel-btn").addEventListener("click", resetToStart);
+    $("restart-btn").addEventListener("click", resetToStart);
+    $("print-btn").addEventListener("click", () => window.print());
+
+    // خلفية الجسيمات اختيارية، وتعطّل تلقائيًا إذا لم تتوفر Three.js أو WebGL.
+    (function initBackground() {
+      if (!window.THREE) return;
+      try {
+        const container = $("canvas-container");
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, .1, 100);
+        camera.position.z = 7;
+        const renderer = new THREE.WebGLRenderer({ alpha:true, antialias:true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        const geometry = new THREE.BufferGeometry();
+        const positions = [];
+        for (let i=0; i<100; i++) {
+          positions.push((Math.random()-.5)*17, (Math.random()-.5)*12, (Math.random()-.5)*8);
+        }
+        geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions,3));
+        const material = new THREE.PointsMaterial({ color:0x9ba9e0, size:.045, transparent:true, opacity:.65 });
+        const points = new THREE.Points(geometry,material);
+        scene.add(points);
+
+        let frame;
+        function animate() {
+          frame = requestAnimationFrame(animate);
+          points.rotation.y += .0005;
+          points.rotation.x += .0002;
+          renderer.render(scene,camera);
+        }
+        animate();
+        window.addEventListener("resize", () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth,window.innerHeight);
+        });
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) cancelAnimationFrame(frame);
+          else animate();
+        });
+      } catch (error) {
+        console.warn("تم تعطيل الخلفية ثلاثية الأبعاد:",error);
+      }
+    })();
+  </script>
+</body>
+</html>
